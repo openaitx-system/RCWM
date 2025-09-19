@@ -35,41 +35,13 @@ function LoopThroughUsers() {
 	$allUsers = Get-ChildItem -Path Registry::"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\S-1-5-21-*"| Select-Object Name
 	
 	if ($users.count -ge 2) {
-		Write-Host "Found " -NoNewLine; Write-Host $allUsers.Name.Count -NoNewLine; " total users in registry." 
+		Write-Host "Found " -NoNewLine; Write-Host $allUsers.Name.Count -NoNewLine; " logged in users in registry." 
 		Write-Host "Can prepare RCWM for " -NoNewLine; Write-Host $users.count -NoNewLine; " active users."
 	} elseif ($mode -ne "current") {
-			Write-Host "Found l user in registry."
+			Write-Host "Found l logged in user in registry."
 	}
 
-	if ($mode -eq "decide") {
-	
-		foreach ($user in $users)
-		{
-
-			#ProfileImagePath
-			#C:\Users\root
-			$userPath = (get-itemproperty -path Registry::$user).ProfileImagePath
-			
-			$UUID = $user.Split("\")[-1]
-			
-			$currentUserName = $userPath.split('\')[-1]
-			Write-Host ""
-			Write-Host "About to prepare RCWM for user " -NoNewLine; Write-Host $currentUserName -ForegroundColor red
-			
-			while ($true) {
-				$mode = Read-Host "Continue (Y/N)?"
-				if ($mode -ne "Y" -AND $mode -ne "N") {echo "Invalid input!"}
-				else {break}
-			}
-			
-			if ($mode -eq "N") {continue} #go to next user
-			else { 
-				prepareRegKeys -user $UUID
-				RegReplacements -mode "decide" -UUIDs $UUID 
-			} #do reg files work
-		}	
-			
-	} elseif ($mode -eq "all") {
+	if ($mode -eq "all") {
 
 		foreach ($user in $users)
 		{
@@ -144,31 +116,8 @@ function RegReplacements() {
 				(Get-Content $file) -Replace "HKEY_LOCAL_MACHINE\\", "HKEY_CURRENT_USER\Software\Classes\" | Set-Content .\Temp\CurrentUser\$fileName
 			}
 		}
-		
-	} elseif ($mode -eq "decide" ) {
 
-
-		foreach ($uuid in $UUIDs) {
-
-			New-Item .\Temp\$uuid -ItemType "directory" 2>&1>$null
-			
-			foreach ($file in $files){
-				$fileName = $file.Name
-				(Get-Content $file) -Replace "HKEY_CLASSES_ROOT\\", "HKEY_USERS\$uuid\Software\Classes\" | Set-Content .\Temp\$uuid\$fileName
-				#KEY_USERS\S-1-5-21-117113989-4160453655-1229134872-1001
-			}
-			
-			foreach ($file in $exceptions){  #in powershell2, there can be empty "files" (there is no Win11.reg)
-				$fileName = $file.Name
-				if ($file.Name -ne $null) {
-					(Get-Content $file) -Replace "HKEY_LOCAL_MACHINE\\", "HKEY_USERS\$uuid\Software\Classes\" | Set-Content .\Temp\$uuid\$fileName
-				}
-			}
-
-		}
-	}
-
-	elseif ($mode -eq "all" ) { #reg files stay the same.
+	} elseif ($mode -eq "all" ) { #reg files stay the same.
 		#only move files to new directory in temp
 		New-Item .\Temp\ALL -ItemType "directory" 2>&1>$null
 		Move-Item -Path .\Temp\*.reg -Destination .\Temp\ALL
@@ -214,9 +163,8 @@ foreach ($user in $allUsers) {
 
 while ($true) {
 
-	$mode1 = Read-Host "Do you want to install RCWM for [C]urrent user only, [D]ecide for each, or for [A]ll users?"
+	$mode1 = Read-Host "Do you want to install RCWM for [C]urrent user only, or for [A]ll users?"
 	if ($mode1 -eq "C") {break}
-	elseif ($mode1 -eq "D") {break}
 	elseif ($mode1 -eq "A") {break}
 	else {echo "Invalid input!"}
 }
@@ -227,8 +175,6 @@ if ($mode1 -eq "A") {
 	Copy-Item -Path "..\InstallerFiles\RCWM_CreateRegistryKeys.bat" -Destination "$env:SystemDrive\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp" | Out-Null
 
 	LoopThroughUsers -mode "all" -users $users
-} elseif ($mode1 -eq "D" ) { 
-	LoopThroughUsers -mode "decide" -users $users
 } elseif ($mode1 -eq "C" ) {
 	LoopThroughUsers -mode "current" -users $null
 }
@@ -246,6 +192,4 @@ if ($mode1 -eq "C") {
 	powershell Set-ExecutionPolicy Bypass -Scope Process; ..\InstallerFiles\Options.ps1 $null
 } elseif ($mode1 -eq "A" ) { 
 	powershell Set-ExecutionPolicy Bypass -Scope Process; ..\InstallerFiles\Options.ps1 $null
-} elseif ($mode1 -eq "D" ) {
-	powershell Set-ExecutionPolicy Bypass -Scope Process; ..\InstallerFiles\Options.ps1 $users
 }

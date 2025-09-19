@@ -4,17 +4,6 @@ $os = [System.Environment]::OSVersion.Version.Major
 
 cd ..\files\Temp
 
-$users = $args[0]
-
-[array]$UUIDs = @()
-
-if ($users -ne $null) {
-	foreach ($user in $users) {
-		$UUID = $user.Split("\")[-1]
-		$UUIDs += $UUID
-	}
-}
-
 $AddOptions = @(
 	New-Object PSObject -Property @{Name = 'x'; RegFile = 'x'; Desc = 'Do you want to add RoboCopy Directory'; exception = "RCopy"}
 	New-Object PSObject -Property @{Name = 'x'; RegFile = 'x'; Desc = 'Do you want to add Move Directory (using robocopy)'; exception = "MvDir"}
@@ -144,12 +133,6 @@ function prompt() {
 }
 
 
-function getUsers(){
-	#get all subdirectories, see which users are you installing for
-	#this should be a parameter passed on from PrepareUsers
-	
-}
-
 function enableReg() {
 	param([string[]]$regFile, [string]$name)
 	#pwsh v2
@@ -160,15 +143,7 @@ function enableReg() {
 		regedit /s $reg
 	}
 	
-	#add info in registry about which options are installed
-	#insert to all UUIDs passed from PrepareUsers ($args[0])
-	if ($UUIDs -ne $null) {
-		foreach ($uuid in $UUIDs) {
-			New-ItemProperty -Path "REGISTRY::HKEY_USERS\$uuid\RCWM\InstallInfo" -Name $name 2>&1>$null
-		}
-	} else { #current only
-		New-ItemProperty -Path "REGISTRY::HKEY_CURRENT_USER\RCWM\InstallInfo" -Name $name 2>&1>$null
-	}
+	New-ItemProperty -Path "REGISTRY::HKEY_CURRENT_USER\RCWM\InstallInfo" -Name $name 2>&1>$null
 
 }
 

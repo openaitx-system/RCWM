@@ -22,38 +22,7 @@ function LoopThroughUsers() {
 	
 	$allUsers = Get-ChildItem -Path Registry::"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\S-1-5-21-*"| Select-Object Name
 
-	if ($mode -eq "decide") {
-	
-		foreach ($user in $users)
-		{
-
-			#get reg path for every user
-			$userRegPath = $user
-
-			#ProfileImagePath
-			#C:\Users\root
-			$userPath = (get-itemproperty -path Registry::$userRegPath).ProfileImagePath
-			
-			$UUID = $userRegPath.Split("\")[-1]
-			
-			$currentUserName = $userPath.split('\')[-1]
-			Write-Host ""
-			Write-Host "About to remove RCWM for user " -NoNewLine; Write-Host $currentUserName -ForegroundColor red
-			
-			while ($true) {
-				$mode = Read-Host "Continue (Y/N)?"
-				if ($mode -ne "Y" -AND $mode -ne "N") {echo "Invalid input!"}
-				else {break}
-			}
-			
-			if ($mode -eq "N") {continue} #go to next user
-			else { 
-				deleteRegKeys -user $UUID
-				RegReplacements -mode "decide" -UUIDs $UUID 
-			} #do reg files work
-		}	
-			
-	} elseif ($mode -eq "allcurrent") { #no decide, all users
+	if ($mode -eq "all") {
 		
 		#generate UUIDs array from users array
 		[array]$UUIDs = @()
@@ -64,7 +33,7 @@ function LoopThroughUsers() {
 			#echo $user.split('\')[-1]
 			deleteRegKeys -user $UUID
 		}
-		RegReplacements -mode "allCurrent" -UUIDs $UUIDs
+		RegReplacements -mode "all" -UUIDs $UUIDs
 	} elseif ($mode -eq "current") {
 	
 		#get current user-name
@@ -143,7 +112,7 @@ function RegReplacements() {
 		foreach ($reg in $uninstallers) { regedit /s $reg }
 		Write-Host "Uninstall for current user successful."
 		
-	} elseif ($mode -eq "allCurrent" -OR $mode -eq "decide" ) { #decide / allCurrent
+	} elseif ($mode -eq "all") {
 
 
 		foreach ($uuid in $UUIDs) {
@@ -207,9 +176,7 @@ while ($true) {
 }
 
 if ($mode1 -eq "A") {
-	LoopThroughUsers -mode "allcurrent" -users $users
-} elseif ($mode1 -eq "D" ) { 
-	LoopThroughUsers -mode "decide" -users $users
+	LoopThroughUsers -mode "all" -users $users
 } elseif ($mode1 -eq "C" ) {
 	LoopThroughUsers -mode "current" -users $null
 }
